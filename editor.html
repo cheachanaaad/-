@@ -1,362 +1,223 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>이력서 편집기</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>이력서 편집기</title>
 
-  <style>
-    /* ===== Print ===== */
-    @page { size: A4; margin: 0; }
+<style>
+@page { size: A4; margin: 0; }
 
-    @media print {
-      html, body { background:#fff !important; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print {
+  html, body { background:#fff !important; }
+  .toolbar { display:none !important; }
 
-      .toolbar { display:none !important; }
-      .sheet-wrap { padding:0 !important; }
+  .sheet{
+    width:210mm !important;
+    height:297mm !important;
+    margin:0 auto !important;
+    padding:10mm !important;
+    box-shadow:none !important;
+    overflow:hidden !important;
+  }
+}
 
-      /* ✅ 인쇄에서는 A4 한 장을 정확히 사용 */
-      .sheet{
-        width:210mm !important;
-        height:297mm !important;   /* 한 페이지 고정 */
-        margin:0 !important;
-        padding:10mm !important;
-        box-shadow:none !important;
-        box-sizing:border-box !important;
-        overflow:hidden !important; /* ✅ 바닥 경계선/넘침 방지 */
-      }
+:root{
+  --border:#111;
+  --thin:1px;
+  --thick:2px;
+  --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif;
+}
 
-      .frame{
-        border:2px solid #111 !important;
-        padding:6mm !important;
-        height: calc(297mm - 20mm) !important; /* sheet padding(10mm*2) 제외 */
-        box-sizing:border-box !important;
-        overflow:hidden !important;
-      }
+body{
+  margin:0;
+  background:#f4f4f4;
+  font-family:var(--font);
+}
 
-      table, tr, td, th { break-inside: avoid; page-break-inside: avoid; }
-    }
+.toolbar{
+  position:sticky;
+  top:0;
+  background:#fff;
+  padding:10px;
+  display:flex;
+  gap:8px;
+  border-bottom:1px solid #e6e6e6;
+}
 
-    :root{
-      --border:#111;
-      --thin:1px;
-      --thick:2px;
-      --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif;
-    }
+.btn{
+  padding:8px 14px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  background:#fff;
+  cursor:pointer;
+  font-weight:700;
+}
 
-    body{
-      margin:0;
-      background:#f4f4f4;
-      font-family:var(--font);
-      color:#111;
-    }
+.btn.primary{
+  background:#111;
+  color:#fff;
+  border-color:#111;
+}
 
-    .toolbar{
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background:#fff;
-      border-bottom:1px solid #e6e6e6;
-      padding:10px 12px;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .btn{
-      border:1px solid #d0d0d0;
-      background:#fff;
-      border-radius:10px;
-      padding:8px 12px;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .btn.primary{ background:#111; color:#fff; border-color:#111; }
-    .hint{ color:#666; font-size:12px; margin-left:auto; }
+.sheet{
+  width:210mm;
+  background:#fff;
+  margin:20px auto;
+  padding:10mm;
+  box-shadow:0 8px 28px rgba(0,0,0,.12);
+  box-sizing:border-box;
+}
 
-    .sheet-wrap{
-      padding: 14px 0;
-    }
+.frame{
+  border:2px solid #111;
+  padding:6mm;
+  box-sizing:border-box;
+}
 
-    /* ✅ 화면에서는 "내용만큼" 높이 (min-height 제거) */
-    .sheet{
-      width:210mm;
-      background:#fff;
-      margin:0 auto;
-      padding:10mm;
-      box-sizing:border-box;
-      box-shadow:0 8px 28px rgba(0,0,0,.12);
-    }
+.title{
+  text-align:center;
+  font-size:26px;
+  letter-spacing:18px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
 
-    /* ✅ frame 높이 강제(min-height) 제거 */
-    .frame{
-      border: var(--thick) solid var(--border);
-      padding: 6mm;
-      box-sizing: border-box;
-    }
+table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:13px;
+}
 
-    .meta{
-      text-align:right;
-      font-size:12px;
-      color:#333;
-      margin-bottom:2mm;
-    }
+th, td{
+  border:1px solid #111;
+  padding:6px;
+  text-align:center;
+  vertical-align:middle;
+}
 
-    .title-row{
-      display:grid;
-      grid-template-columns:34mm 1fr;
-      gap:6mm;
-      align-items:start;
-      margin-bottom:4mm;
-    }
+.label{ width:18%; font-weight:bold; }
+.value{ width:32%; }
+.label-sm{ width:16%; font-weight:bold; }
+.value-sm{ width:34%; }
 
-    .photo-box{
-      border: var(--thin) solid var(--border);
-      width:34mm;
-      height:42mm;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      color:#666;
-      user-select:none;
-    }
+.section-title{
+  font-weight:bold;
+  padding:8px 0;
+}
 
-    .title{
-      text-align:center;
-      font-size:26px;
-      letter-spacing:18px;
-      font-weight:700;
-      margin-top:4mm;
-      margin-bottom:2mm;
-    }
+.blank-row td{ height:12mm; }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed;
-      font-size:13px;
-    }
-    th, td{
-      border: var(--thin) solid var(--border);
-      padding:6px 6px;
-      vertical-align:middle;
-    }
-    th{
-      font-weight:700;
-      text-align:center;
-      background:#fff;
-    }
+.nowrap{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
-    /* ✅ 전체 셀 가운데 정렬 */
-    td, th { text-align: center; }
+.rrn-cell{
+  height:28px;
+  line-height:28px;
+}
 
-    .label{ width:18%; font-weight:700; }
-    .value{ width:32%; }
-    .label-sm{ width:16%; font-weight:700; }
-    .value-sm{ width:34%; }
-
-    .section-title{
-      text-align:center;
-      font-weight:700;
-      padding:8px 0;
-      background:#fff;
-    }
-
-    .career th:nth-child(1){ width:16%; }
-    .career th:nth-child(2){ width:64%; }
-    .career th:nth-child(3){ width:20%; }
-
-    [contenteditable="true"]{ outline:none; }
-    [contenteditable="true"]:focus{
-      outline: 2px solid rgba(0,0,0,.15);
-      outline-offset: 1px;
-      border-radius: 4px;
-    }
-
-    .blank-row td{ height:12mm; }
-
-    .nowrap{
-      white-space: nowrap;
-      word-break: keep-all;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .rrn-cell{
-      height: 28px;
-      line-height: 28px;
-      vertical-align: middle;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-  </style>
+[contenteditable="true"]:focus{
+  outline:2px solid rgba(0,0,0,.15);
+}
+</style>
 </head>
 
 <body>
-  <div class="toolbar">
-    <button class="btn primary" onclick="printA4()">인쇄(A4)</button>
-    <button class="btn" onclick="copyLink()">현재 링크 복사</button>
-    <button class="btn" onclick="exportJson()">수정값 JSON 내보내기</button>
-    <span class="hint">문서에서 직접 클릭해 수정 → 인쇄</span>
-  </div>
 
-  <div class="sheet-wrap">
-    <div class="sheet" id="printArea">
-      <div class="frame" id="root"></div>
-    </div>
-  </div>
+<div class="toolbar">
+  <button class="btn primary" onclick="window.print()">인쇄(A4)</button>
+</div>
+
+<div class="sheet">
+  <div class="frame" id="root"></div>
+</div>
 
 <script>
-  function esc(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+function parseHashData(){
+  const m = location.hash.match(/#data=([^&]+)/);
+  if(!m) return {};
+  try{
+    return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+  }catch(e){
+    return {};
   }
+}
 
-  function parseHashData(){
-    const m = location.hash.match(/#data=([^&]+)/);
-    if(!m) return {};
-    try{
-      return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
-    }catch(e){
-      return {};
-    }
-  }
+function render(data){
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  const licenses = Array.isArray(data.licenses) ? data.licenses : [];
 
-  function render(data){
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const licenses = Array.isArray(data.licenses) ? data.licenses : [];
+  const rowsHtml = rows.map((r) => `
+    <tr>
+      <td class="nowrap" contenteditable="true">${esc(r.date||"")}</td>
+      <td contenteditable="true">${esc(r.content||"")}</td>
+      <td contenteditable="true">${esc(r.issuer||"")}</td>
+    </tr>
+  `).join("");
 
-    const rowsHtml = rows.map((r, idx) => `
-      <tr data-row="${idx}">
-        <td class="nowrap" contenteditable="true" data-k="date">${esc(r.date||"")}</td>
-        <td contenteditable="true" data-k="content">${esc(r.content||"")}</td>
-        <td contenteditable="true" data-k="issuer">${esc(r.issuer||"")}</td>
+  document.getElementById("root").innerHTML = `
+    <div class="title">이 력 서</div>
+
+    <table>
+      <tr>
+        <td class="label">성명</td>
+        <td class="value" contenteditable="true">${esc(data.name||"")}</td>
+        <td class="label-sm">주민등록번호</td>
+        <td class="value-sm rrn-cell nowrap" contenteditable="true">${esc(data.rrn||"")}</td>
       </tr>
-    `).join("");
+      <tr>
+        <td class="label">생년월일</td>
+        <td class="value nowrap" contenteditable="true">${esc(data.birth||"")}</td>
+        <td class="label-sm">성별(남·여)</td>
+        <td class="value-sm nowrap" contenteditable="true">${esc(data.gender||"")}</td>
+      </tr>
+      <tr>
+        <td class="label">주소</td>
+        <td colspan="3" contenteditable="true">${esc(data.address||"")}</td>
+      </tr>
+      <tr>
+        <td class="label">E-mail</td>
+        <td class="value" contenteditable="true">${esc(data.email||"")}</td>
+        <td class="label-sm">전화 / H.P</td>
+        <td class="value-sm nowrap" contenteditable="true">${esc(data.phone||"")}</td>
+      </tr>
+    </table>
 
-    document.getElementById("root").innerHTML = `
-      <div class="meta">(인사서식제1호)</div>
+    <table style="margin-top:10px;">
+      <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
+      <tr>
+        <th>년 월 일</th>
+        <th>학력 및 경력사항</th>
+        <th>발령청</th>
+      </tr>
+      ${rowsHtml}
+      <tr class="blank-row"><td></td><td></td><td></td></tr>
+      <tr class="blank-row"><td></td><td></td><td></td></tr>
+      <tr class="blank-row"><td></td><td></td><td></td></tr>
+    </table>
 
-      <div class="title-row">
-        <div class="photo-box">사진</div>
-        <div>
-          <div class="title">이 력 서</div>
+    <table style="margin-top:10px;">
+      <tr><th class="section-title">자격증</th></tr>
+      <tr>
+        <td contenteditable="true">${esc(licenses.join(" / "))}</td>
+      </tr>
+    </table>
+  `;
+}
 
-          <table>
-            <tr>
-              <td class="label">성명</td>
-              <td class="value" contenteditable="true" data-field="name">${esc(data.name||"")}</td>
-              <td class="label-sm">주민등록번호</td>
-              <td class="value-sm rrn-cell nowrap" contenteditable="true" data-field="rrn">${esc(data.rrn||"")}</td>
-            </tr>
-            <tr>
-              <td class="label">생년월일</td>
-              <td class="value nowrap" contenteditable="true" data-field="birth">${esc(data.birth||"")}</td>
-              <td class="label-sm">성별(남·여)</td>
-              <td class="value-sm nowrap" contenteditable="true" data-field="gender">${esc(data.gender||"")}</td>
-            </tr>
-            <tr>
-              <td class="label">주소</td>
-              <td colspan="3" contenteditable="true" data-field="address">${esc(data.address||"")}</td>
-            </tr>
-            <tr>
-              <td class="label">E-mail</td>
-              <td class="value" contenteditable="true" data-field="email">${esc(data.email||"")}</td>
-              <td class="label-sm">전화 / H.P</td>
-              <td class="value-sm nowrap" contenteditable="true" data-field="phone">${esc(data.phone||"")}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-
-      <table class="career" style="margin-top:3mm;">
-        <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
-        <tr>
-          <th>년 월 일</th>
-          <th>학력 및 경력사항</th>
-          <th>발령청</th>
-        </tr>
-
-        ${rowsHtml || `
-          <tr data-row="0">
-            <td class="nowrap" contenteditable="true" data-k="date"></td>
-            <td contenteditable="true" data-k="content"></td>
-            <td contenteditable="true" data-k="issuer"></td>
-          </tr>
-        `}
-
-        <tr class="blank-row"><td></td><td></td><td></td></tr>
-        <tr class="blank-row"><td></td><td></td><td></td></tr>
-        <tr class="blank-row"><td></td><td></td><td></td></tr>
-      </table>
-
-      <table style="margin-top:3mm;">
-        <tr><th class="section-title">자격증</th></tr>
-        <tr>
-          <td contenteditable="true" data-field="licenses">${esc(licenses.join(" / "))}</td>
-        </tr>
-      </table>
-    `;
-  }
-
-  function collect(){
-    const root = document.getElementById("root");
-    const data = {};
-
-    root.querySelectorAll("[data-field]").forEach(el=>{
-      const k = el.getAttribute("data-field");
-      const v = (el.textContent || "").trim();
-      if (k === "licenses") {
-        data.licenses = v ? v.split("/").map(s=>s.trim()).filter(Boolean) : [];
-      } else {
-        data[k] = v;
-      }
-    });
-
-    const rows = [];
-    root.querySelectorAll("tr[data-row]").forEach(tr=>{
-      const r = {
-        date: (tr.querySelector('[data-k="date"]')?.textContent || "").trim(),
-        content: (tr.querySelector('[data-k="content"]')?.textContent || "").trim(),
-        issuer: (tr.querySelector('[data-k="issuer"]')?.textContent || "").trim(),
-      };
-      if (r.date || r.content || r.issuer) rows.push(r);
-    });
-    data.rows = rows;
-
-    return data;
-  }
-
-  async function copyLink(){
-    try{
-      await navigator.clipboard.writeText(location.href);
-      alert("링크를 복사했습니다.");
-    }catch{
-      prompt("복사 실패. 아래 링크를 직접 복사하세요:", location.href);
-    }
-  }
-
-  function exportJson(){
-    const data = collect();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "resume.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function printA4(){
-    requestAnimationFrame(() => window.print());
-  }
-
-  render(parseHashData());
+render(parseHashData());
 </script>
+
 </body>
 </html>
