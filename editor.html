@@ -1,197 +1,80 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>이력서 편집기</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:20px;line-height:1.5}
-    .hint{color:#666;font-size:12px;margin-bottom:10px}
-    textarea{width:100%;height:220px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
-    iframe{width:100%;height:860px;border:1px solid #ddd;margin-top:12px;border-radius:10px;background:#fff}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    button{padding:8px 14px;border:1px solid #ddd;border-radius:10px;background:#fff;font-weight:600;cursor:pointer}
-    button.primary{background:#111;color:#fff;border-color:#111}
-  </style>
-</head>
-<body>
-  <h2>이력서 편집기</h2>
-  <div class="hint">
-    링크에 포함된 <b>#data=...</b>를 자동으로 불러와서 미리보기를 생성합니다.<br/>
-    아래 JSON을 수정한 뒤 <b>미리보기 갱신</b>을 누르면 반영됩니다.
-  </div>
-
-  <div class="row">
-    <button class="primary" onclick="render()">미리보기 갱신</button>
-    <button onclick="printPreview()">인쇄(A4)</button>
-  </div>
-
-  <textarea id="json"></textarea>
-
-  <iframe id="preview" title="미리보기"></iframe>
-
-<script>
-  function esc(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
-  }
-
-  function renderResumeHtml(data){
-    const name = esc(data.name || "");
-    const rrn = esc(data.rrn || "");
-    const birth = esc(data.birth || "");
-    const gender = esc(data.gender || "");
-    const address = esc(data.address || "");
-    const email = esc(data.email || "");
-    const phone = esc(data.phone || "");
-
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const licenses = Array.isArray(data.licenses) ? data.licenses : [];
-
-    const rowHtml = rows.map(r=>{
-      const d = esc(r?.date || "");
-      const c = esc(r?.content || "");
-      const i = esc(r?.issuer || "");
-      return `<tr><td class="center">${d}</td><td>${c}</td><td>${i}</td></tr>`;
-    }).join("");
-
-    const licText = esc(licenses.join(" / "));
-
-    return `<!doctype html>
-<html lang="ko">
-<head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>이력서</title>
+<title>이력서 편집기</title>
 <style>
-  @page { size: A4; margin: 10mm; }
-  @media print { body { background:#fff; } .sheet { box-shadow:none !important; margin:0 !important; } }
-  :root{ --border:#111; --thin:1px; --thick:2px; --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif; }
-  body{ margin:0; background:#f4f4f4; font-family:var(--font); color:#111; }
-  .sheet{ width:210mm; min-height:297mm; background:#fff; margin:12px auto; padding:10mm; box-sizing:border-box; box-shadow:0 8px 28px rgba(0,0,0,.12); }
-  .frame{ border:var(--thick) solid var(--border); padding:6mm; }
-  .meta{ text-align:right; font-size:12px; color:#333; }
-  .title-row{ display:grid; grid-template-columns:34mm 1fr; gap:6mm; align-items:start; margin:2mm 0 4mm; }
-  .photo-box{ border:var(--thin) solid var(--border); width:34mm; height:42mm; display:flex; align-items:center; justify-content:center; font-size:12px; color:#666; }
-  .title{ text-align:center; font-size:26px; letter-spacing:18px; font-weight:700; margin-top:4mm; margin-bottom:2mm; }
-  table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
-  th, td{ border:var(--thin) solid var(--border); padding:6px; vertical-align:middle; }
-  th{ font-weight:700; text-align:center; }
-  .label{ width:18%; text-align:center; font-weight:700; }
-  .value{ width:32%; }
-  .label-sm{ width:16%; text-align:center; font-weight:700; }
-  .value-sm{ width:34%; }
-  .section-title{ text-align:center; font-weight:700; padding:8px 0; }
-  .career th:nth-child(1){ width:16%; }
-  .career th:nth-child(2){ width:64%; }
-  .career th:nth-child(3){ width:20%; }
-  .center{ text-align:center; }
-  .blank{ height:12mm; }
+  body{margin:0;font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;background:#f4f4f4}
+  .sheet{width:210mm;min-height:297mm;background:#fff;margin:20px auto;padding:20mm;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+  .title{text-align:center;font-size:28px;letter-spacing:15px;font-weight:bold}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border:1px solid #111;padding:6px;font-size:14px}
+  th{text-align:center}
+  [contenteditable]{outline:none}
+  .print-btn{position:fixed;top:10px;right:10px;padding:8px 14px;background:#111;color:#fff;border:none;border-radius:6px;cursor:pointer}
 </style>
 </head>
 <body>
-  <div class="sheet">
-    <div class="frame">
-      <div class="meta">(인사서식제1호)</div>
 
-      <div class="title-row">
-        <div class="photo-box">사진</div>
+<button class="print-btn" onclick="window.print()">인쇄</button>
 
-        <div>
-          <div class="title">이 력 서</div>
+<div class="sheet" id="resume"></div>
 
-          <table>
-            <tr>
-              <td class="label">성명</td>
-              <td class="value">${name}</td>
-              <td class="label-sm">주민등록번호</td>
-              <td class="value-sm">${rrn}</td>
-            </tr>
-            <tr>
-              <td class="label">생년월일</td>
-              <td class="value">${birth}</td>
-              <td class="label-sm">성별(남·여)</td>
-              <td class="value-sm">${gender}</td>
-            </tr>
-            <tr>
-              <td class="label">주소</td>
-              <td colspan="3">${address}</td>
-            </tr>
-            <tr>
-              <td class="label">E-mail</td>
-              <td class="value">${email}</td>
-              <td class="label-sm">전화 / H.P</td>
-              <td class="value-sm">${phone}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
+<script>
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
 
-      <table class="career" style="margin-top:3mm;">
-        <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
-        <tr><th>년 월 일</th><th>학력 및 경력사항</th><th>발령청</th></tr>
-        ${rowHtml}
-        <tr><td class="blank"></td><td></td><td></td></tr>
-        <tr><td class="blank"></td><td></td><td></td></tr>
-        <tr><td class="blank"></td><td></td><td></td></tr>
-      </table>
-
-      <table style="margin-top:3mm;">
-        <tr><th class="section-title">자격증</th></tr>
-        <tr><td style="height:18mm;">${licText}</td></tr>
-      </table>
-    </div>
-  </div>
-</body>
-</html>`;
+function parseData(){
+  const m = location.hash.match(/#data=([^&]+)/);
+  if(!m) return {};
+  try{
+    return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+  }catch(e){
+    return {};
   }
+}
 
-  function parseHashData(){
-    const m = location.hash.match(/#data=([^&]+)/);
-    if (!m) return null;
-    try{
-      // base64(JSON utf8)
-      const json = decodeURIComponent(escape(atob(m[1])));
-      return json;
-    }catch(e){
-      return null;
-    }
-  }
+function render(){
+  const data = parseData();
 
-  function render(){
-    let data = {};
-    const raw = document.getElementById("json").value.trim();
-    if (raw) {
-      try { data = JSON.parse(raw); }
-      catch(e){ alert("JSON 형식 오류입니다. (쉼표/따옴표 확인)"); return; }
-    }
-    document.getElementById("preview").srcdoc = renderResumeHtml(data);
-  }
+  const rows = (data.rows || []).map(r =>
+    `<tr>
+      <td contenteditable="true">${esc(r.date||"")}</td>
+      <td contenteditable="true">${esc(r.content||"")}</td>
+      <td contenteditable="true">${esc(r.issuer||"")}</td>
+    </tr>`
+  ).join("");
 
-  function printPreview(){
-    const iframe = document.getElementById("preview");
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-  }
+  document.getElementById("resume").innerHTML = `
+    <div class="title">이 력 서</div>
 
-  // ✅ 핵심: 링크의 #data를 자동으로 textarea에 넣고, 자동 렌더
-  window.addEventListener("load", ()=>{
-    const hashed = parseHashData();
-    if (hashed) document.getElementById("json").value = hashed;
-    else {
-      // 해시가 없을 때 기본 예시
-      document.getElementById("json").value = JSON.stringify({
-        name:"", phone:"", email:"", address:"",
-        rows:[{date:"",content:"",issuer:""}],
-        licenses:[]
-      }, null, 2);
-    }
-    render();
-  });
+    <table>
+      <tr><th>성명</th><td contenteditable="true">${esc(data.name||"")}</td></tr>
+      <tr><th>주민등록번호</th><td contenteditable="true">${esc(data.rrn||"")}</td></tr>
+      <tr><th>생년월일</th><td contenteditable="true">${esc(data.birth||"")}</td></tr>
+      <tr><th>성별</th><td contenteditable="true">${esc(data.gender||"")}</td></tr>
+      <tr><th>주소</th><td contenteditable="true">${esc(data.address||"")}</td></tr>
+      <tr><th>이메일</th><td contenteditable="true">${esc(data.email||"")}</td></tr>
+      <tr><th>전화</th><td contenteditable="true">${esc(data.phone||"")}</td></tr>
+    </table>
+
+    <h3>학력 및 경력사항</h3>
+    <table>
+      <tr><th>년월일</th><th>내용</th><th>발령청</th></tr>
+      ${rows}
+    </table>
+
+    <h3>자격증</h3>
+    <div contenteditable="true">${esc((data.licenses||[]).join(" / "))}</div>
+  `;
+}
+
+render();
 </script>
 </body>
 </html>
