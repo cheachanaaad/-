@@ -129,17 +129,40 @@ th, td{
 <script>
 function esc(s){
   return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+/* ✅ URL-safe base64(-, _) + 패딩 보정 + UTF-8 디코딩 */
+function b64ToUtf8(b64){
+  // URL-safe -> standard
+  b64 = String(b64 || "").replace(/-/g, "+").replace(/_/g, "/");
+
+  // padding 보정
+  const pad = b64.length % 4;
+  if (pad === 2) b64 += "==";
+  else if (pad === 3) b64 += "=";
+  else if (pad === 1) throw new Error("Invalid base64 length");
+
+  // atob -> binary string
+  const bin = atob(b64);
+
+  // binary -> Uint8Array -> UTF-8 string
+  const bytes = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+
+  return new TextDecoder("utf-8").decode(bytes);
 }
 
 function parseHashData(){
   const m = location.hash.match(/#data=([^&]+)/);
   if(!m) return {};
   try{
-    return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    const jsonStr = b64ToUtf8(m[1]);
+    return JSON.parse(jsonStr);
   }catch(e){
+    console.error("hash data decode error:", e);
     return {};
   }
 }
