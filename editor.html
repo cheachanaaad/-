@@ -1,207 +1,222 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>이력서 편집기</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:20px;line-height:1.5}
-    textarea{width:100%;height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-    iframe{width:100%;height:860px;border:1px solid #ddd;margin-top:12px;border-radius:10px;background:#fff}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    button{padding:8px 14px;border:1px solid #ddd;border-radius:10px;background:#fff;font-weight:600;cursor:pointer}
-    button.primary{background:#111;color:#fff;border-color:#111}
-    .hint{color:#666;font-size:12px}
-  </style>
-</head>
-<body>
-  <h2>이력서 편집기</h2>
+// netlify/functions/mcp.js
+// MCP endpoint for ChatGPT Connector
+// - GET (Accept: text/event-stream): minimal SSE probe
+// - POST JSON-RPC: initialize, tools/list, tools/call
+//
+// Tool: resume.open_editor
+//  -> returns editor link with prefilled data: /editor.html#data=<base64(json)>
+//
+// 핵심: required 스키마 + 서버측 검증으로 빈 {} 호출 방지
 
-  <div class="hint">
-    이 페이지는 ChatGPT가 만든 초안을 자동으로 불러올 수 있습니다. (URL의 <b>#data=...</b>)<br/>
-    JSON을 수정하면 아래 미리보기에 반영됩니다.
-  </div>
+exports.handler = async (event) => {
+  const accept = String(event.headers?.accept || event.headers?.Accept || "").toLowerCase();
 
-  <div class="row">
-    <button class="primary" onclick="render()">미리보기 갱신</button>
-    <button onclick="printPreview()">인쇄(A4)</button>
-    <button onclick="copyLink()">현재 링크 복사</button>
-  </div>
-
-  <textarea id="json" placeholder='{"name":"홍길동","rows":[{"date":"2020.03","content":"OO대학교 졸업","issuer":""}]}'></textarea>
-
-  <iframe id="preview" title="미리보기"></iframe>
-
-<script>
-  function esc(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
-  }
-
-  function renderResumeHtml(data){
-    const name = esc(data.name || "");
-    const rrn = esc(data.rrn || "");
-    const birth = esc(data.birth || "");
-    const gender = esc(data.gender || "");
-    const address = esc(data.address || "");
-    const email = esc(data.email || "");
-    const phone = esc(data.phone || "");
-
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const licenses = Array.isArray(data.licenses) ? data.licenses : [];
-
-    const rowHtml = rows.map(r=>{
-      const d = esc(r?.date || "");
-      const c = esc(r?.content || "");
-      const i = esc(r?.issuer || "");
-      return `<tr><td class="center">${d}</td><td>${c}</td><td>${i}</td></tr>`;
-    }).join("");
-
-    const licText = esc(licenses.join(" / "));
-
-    return `<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>이력서</title>
-<style>
-  @page { size: A4; margin: 10mm; }
-  @media print { body { background:#fff; } .sheet { box-shadow:none !important; margin:0 !important; } }
-  :root{ --border:#111; --thin:1px; --thick:2px; --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif; }
-  body{ margin:0; background:#f4f4f4; font-family:var(--font); color:#111; }
-  .sheet{ width:210mm; min-height:297mm; background:#fff; margin:12px auto; padding:10mm; box-sizing:border-box; box-shadow:0 8px 28px rgba(0,0,0,.12); }
-  .frame{ border:var(--thick) solid var(--border); padding:6mm; }
-  .meta{ text-align:right; font-size:12px; color:#333; }
-  .title-row{ display:grid; grid-template-columns:34mm 1fr; gap:6mm; align-items:start; margin:2mm 0 4mm; }
-  .photo-box{ border:var(--thin) solid var(--border); width:34mm; height:42mm; display:flex; align-items:center; justify-content:center; font-size:12px; color:#666; }
-  .title{ text-align:center; font-size:26px; letter-spacing:18px; font-weight:700; margin-top:4mm; margin-bottom:2mm; }
-  table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
-  th, td{ border:var(--thin) solid var(--border); padding:6px; vertical-align:middle; }
-  th{ font-weight:700; text-align:center; }
-  .label{ width:18%; text-align:center; font-weight:700; }
-  .value{ width:32%; }
-  .label-sm{ width:16%; text-align:center; font-weight:700; }
-  .value-sm{ width:34%; }
-  .section-title{ text-align:center; font-weight:700; padding:8px 0; }
-  .career th:nth-child(1){ width:16%; }
-  .career th:nth-child(2){ width:64%; }
-  .career th:nth-child(3){ width:20%; }
-  .center{ text-align:center; }
-  .blank{ height:12mm; }
-</style>
-</head>
-<body>
-  <div class="sheet">
-    <div class="frame">
-      <div class="meta">(인사서식제1호)</div>
-
-      <div class="title-row">
-        <div class="photo-box">사진</div>
-
-        <div>
-          <div class="title">이 력 서</div>
-
-          <table>
-            <tr>
-              <td class="label">성명</td>
-              <td class="value">${name}</td>
-              <td class="label-sm">주민등록번호</td>
-              <td class="value-sm">${rrn}</td>
-            </tr>
-            <tr>
-              <td class="label">생년월일</td>
-              <td class="value">${birth}</td>
-              <td class="label-sm">성별(남·여)</td>
-              <td class="value-sm">${gender}</td>
-            </tr>
-            <tr>
-              <td class="label">주소</td>
-              <td colspan="3">${address}</td>
-            </tr>
-            <tr>
-              <td class="label">E-mail</td>
-              <td class="value">${email}</td>
-              <td class="label-sm">전화 / H.P</td>
-              <td class="value-sm">${phone}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-
-      <table class="career" style="margin-top:3mm;">
-        <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
-        <tr><th>년 월 일</th><th>학력 및 경력사항</th><th>발령청</th></tr>
-        ${rowHtml}
-        <tr><td class="blank"></td><td></td><td></td></tr>
-        <tr><td class="blank"></td><td></td><td></td></tr>
-        <tr><td class="blank"></td><td></td><td></td></tr>
-      </table>
-
-      <table style="margin-top:3mm;">
-        <tr><th class="section-title">자격증</th></tr>
-        <tr><td style="height:18mm;">${licText}</td></tr>
-      </table>
-    </div>
-  </div>
-</body>
-</html>`;
-  }
-
-  function parseHashData(){
-    const m = location.hash.match(/#data=([^&]+)/);
-    if (!m) return null;
-    try{
-      const json = decodeURIComponent(escape(atob(m[1])));
-      return json;
-    }catch(e){
-      return null;
+  // Some clients probe with SSE GET first.
+  if (event.httpMethod === "GET") {
+    if (accept.includes("text/event-stream")) {
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+        },
+        body: ": ok\n\nevent: ready\ndata: {}\n\n",
+      };
     }
+    return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  function render(){
-    let data = {};
-    const raw = document.getElementById("json").value.trim();
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
-    if (raw) {
-      try { data = JSON.parse(raw); }
-      catch(e){ alert("JSON 형식 오류입니다. (쉼표/따옴표 확인)"); return; }
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32700, message: "Parse error" },
+      }),
+    };
+  }
+
+  const { id, method, params } = body;
+
+  // ---- 공통 스키마(규칙) ----
+  // 필수: name, phone, email, address, rows(최소 1개)
+  // rows의 각 항목은 date+content 필수
+  const TOOL_SCHEMA = {
+    type: "object",
+    properties: {
+      name: { type: "string", description: "성명" },
+      rrn: { type: "string", description: "주민등록번호(선택)" },
+      birth: { type: "string", description: "생년월일(선택)" },
+      gender: { type: "string", description: "성별(선택: 남/여)" },
+      address: { type: "string", description: "주소" },
+      email: { type: "string", description: "이메일" },
+      phone: { type: "string", description: "전화/H.P" },
+      rows: {
+        type: "array",
+        description: "학력/경력 행 목록(위에서 아래 순서대로 출력)",
+        items: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "년 월 일(예: 2020.03)" },
+            content: { type: "string", description: "학력 및 경력사항" },
+            issuer: { type: "string", description: "발령청(없으면 빈칸)" },
+          },
+          required: ["date", "content"],
+          additionalProperties: false,
+        },
+        minItems: 1,
+      },
+      licenses: {
+        type: "array",
+        description: "자격증 목록(선택)",
+        items: { type: "string" },
+      },
+    },
+    required: ["name", "phone", "email", "address", "rows"],
+    additionalProperties: false,
+  };
+
+  function json(okObj) {
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      body: JSON.stringify(okObj),
+    };
+  }
+
+  function jsonError(rpcId, code, message) {
+    return json({
+      jsonrpc: "2.0",
+      id: rpcId ?? null,
+      error: { code, message },
+    });
+  }
+
+  function validateArgs(args) {
+    const missing = [];
+    if (!args || typeof args !== "object") return ["name", "phone", "email", "address", "rows"];
+
+    if (!String(args.name || "").trim()) missing.push("name");
+    if (!String(args.phone || "").trim()) missing.push("phone");
+    if (!String(args.email || "").trim()) missing.push("email");
+    if (!String(args.address || "").trim()) missing.push("address");
+
+    if (!Array.isArray(args.rows) || args.rows.length === 0) {
+      missing.push("rows");
+    } else {
+      // rows 내부 필수 확인
+      for (let i = 0; i < args.rows.length; i++) {
+        const r = args.rows[i] || {};
+        if (!String(r.date || "").trim() || !String(r.content || "").trim()) {
+          // rows 항목 자체가 불완전하면 rows로 처리 (상세는 메시지로 안내)
+          missing.push("rows");
+          break;
+        }
+      }
+    }
+    return missing;
+  }
+
+  // --- initialize ---
+  if (method === "initialize") {
+    return json({
+      jsonrpc: "2.0",
+      id,
+      result: {
+        protocolVersion: "2025-11-25",
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: "resume-mcp", version: "1.2.0" },
+
+        // ✅ 여기 “규칙”을 명시: 먼저 수집 → tool 호출
+        instructions: [
+          "당신은 이력서 양식을 자동으로 채우는 도구를 사용할 수 있다.",
+          "도구 호출 전 반드시 사용자로부터 아래 필수 정보를 수집해 구조화된 JSON arguments로 만들어라:",
+          "- name(성명), phone(전화), email(이메일), address(주소), rows(학력/경력 최소 1개)",
+          "rows의 각 항목은 { date, content }가 필수이며 issuer는 선택이다.",
+          "필수 정보가 없으면 도구를 호출하지 말고 사용자에게 누락 항목을 질문하라.",
+          "필수 정보가 모이면 resume.open_editor를 호출해, 값이 채워진 편집기 링크를 제공하라.",
+        ].join("\n"),
+      },
+    });
+  }
+
+  // --- tools/list ---
+  if (method === "tools/list") {
+    return json({
+      jsonrpc: "2.0",
+      id,
+      result: {
+        tools: [
+          {
+            name: "resume.open_editor",
+            title: "이력서 편집기 열기(초안 채움)",
+            description:
+              "입력된 이력서 정보를 바탕으로 편집기 링크를 생성합니다. 링크를 열면 초안이 자동으로 채워져 있으며 사용자가 직접 수정/인쇄할 수 있습니다.",
+            inputSchema: TOOL_SCHEMA, // ✅ required 포함
+          },
+        ],
+      },
+    });
+  }
+
+  // --- tools/call ---
+  if (method === "tools/call") {
+    const toolName = params?.name;
+    const args = params?.arguments || {};
+
+    if (toolName !== "resume.open_editor") {
+      return jsonError(id, -32602, `Unknown tool: ${toolName}`);
     }
 
-    const html = renderResumeHtml(data);
-    document.getElementById("preview").srcdoc = html;
-
-    // 현재 내용 기준으로 링크도 유지하고 싶으면 hash를 갱신할 수도 있음(선택)
-    // 여기선 사용자가 원하면 버튼으로 복사하게만 둠.
-  }
-
-  function printPreview(){
-    const iframe = document.getElementById("preview");
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-  }
-
-  async function copyLink(){
-    try{
-      await navigator.clipboard.writeText(location.href);
-      alert("링크를 복사했습니다.");
-    }catch{
-      prompt("복사 실패. 아래 링크를 직접 복사하세요:", location.href);
+    // ✅ 서버 측에서 빈 {} 방지 (근본 해결)
+    const missing = validateArgs(args);
+    if (missing.length) {
+      return jsonError(
+        id,
+        -32602,
+        `필수 입력 누락: ${missing.join(", ")}. 사용자 정보를 먼저 수집한 뒤 다시 호출하세요. ` +
+          `필수: name, phone, email, address, rows(각 row는 date+content 필수).`
+      );
     }
+
+    // base URL 구성
+    const proto = event.headers["x-forwarded-proto"] || "https";
+    const host = event.headers.host;
+    const baseUrl = `${proto}://${host}`;
+
+    // args(JSON)를 base64로 링크 hash에 포함 (서버 저장 없음)
+    const jsonStr = JSON.stringify(args);
+    const b64 = Buffer.from(jsonStr, "utf8").toString("base64");
+    const url = `${baseUrl}/editor.html#data=${b64}`;
+
+    return json({
+      jsonrpc: "2.0",
+      id,
+      result: {
+        content: [
+          {
+            type: "text",
+            text:
+              "이력서 초안(수정 가능) 링크입니다. 열면 내용이 자동으로 채워져 있습니다.\n" +
+              url +
+              "\n\n편집 후 인쇄: Ctrl+P (또는 편집기 내 인쇄 버튼)",
+          },
+        ],
+        isError: false,
+      },
+    });
   }
 
-  // 초기 로드: hash의 data를 JSON textarea에 주입 후 자동 미리보기
-  window.addEventListener("load", ()=>{
-    const hashed = parseHashData();
-    if (hashed) {
-      document.getElementById("json").value = hashed;
-    }
-    render();
-  });
-</script>
-</body>
-</html>
+  // --- default ---
+  return jsonError(id, -32601, "Method not found");
+};
