@@ -6,17 +6,26 @@
 <title>이력서 편집기</title>
 
 <style>
-@page { size: A4; margin: 15mm; }
+@page { size: A4; margin: 0; }
 
 @media print {
-  body { background:#fff !important; }
+  html, body { background:#fff !important; }
   .toolbar { display:none !important; }
-  .sheet { box-shadow:none !important; margin:0 !important; }
+
+  .sheet{
+    width:210mm !important;
+    height:297mm !important;
+    margin:0 auto !important;
+    padding:10mm !important;
+    box-shadow:none !important;
+    overflow:hidden !important;
+  }
 }
 
 :root{
-  --border:#222;
+  --border:#111;
   --thin:1px;
+  --thick:2px;
   --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif;
 }
 
@@ -60,9 +69,10 @@ body{
   box-sizing:border-box;
 }
 
-/* 🔥 frame border 완전 제거 */
 .frame{
-  padding:0;
+  border:2px solid #111;
+  padding:6mm;
+  box-sizing:border-box;
 }
 
 .title{
@@ -70,7 +80,7 @@ body{
   font-size:26px;
   letter-spacing:18px;
   font-weight:bold;
-  margin-bottom:15px;
+  margin-bottom:10px;
 }
 
 table{
@@ -81,7 +91,7 @@ table{
 }
 
 th, td{
-  border:1px solid var(--border);
+  border:1px solid #111;
   padding:6px;
   text-align:center;
   vertical-align:middle;
@@ -129,40 +139,17 @@ th, td{
 <script>
 function esc(s){
   return String(s ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-/* ✅ URL-safe base64(-, _) + 패딩 보정 + UTF-8 디코딩 */
-function b64ToUtf8(b64){
-  // URL-safe -> standard
-  b64 = String(b64 || "").replace(/-/g, "+").replace(/_/g, "/");
-
-  // padding 보정
-  const pad = b64.length % 4;
-  if (pad === 2) b64 += "==";
-  else if (pad === 3) b64 += "=";
-  else if (pad === 1) throw new Error("Invalid base64 length");
-
-  // atob -> binary string
-  const bin = atob(b64);
-
-  // binary -> Uint8Array -> UTF-8 string
-  const bytes = new Uint8Array(bin.length);
-  for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-
-  return new TextDecoder("utf-8").decode(bytes);
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
 }
 
 function parseHashData(){
   const m = location.hash.match(/#data=([^&]+)/);
   if(!m) return {};
   try{
-    const jsonStr = b64ToUtf8(m[1]);
-    return JSON.parse(jsonStr);
+    return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
   }catch(e){
-    console.error("hash data decode error:", e);
     return {};
   }
 }
@@ -171,7 +158,7 @@ function render(data){
   const rows = Array.isArray(data.rows) ? data.rows : [];
   const licenses = Array.isArray(data.licenses) ? data.licenses : [];
 
-  const rowsHtml = rows.map(r => `
+  const rowsHtml = rows.map((r) => `
     <tr>
       <td class="nowrap" contenteditable="true">${esc(r.date||"")}</td>
       <td contenteditable="true">${esc(r.content||"")}</td>
@@ -207,7 +194,7 @@ function render(data){
       </tr>
     </table>
 
-    <table style="margin-top:12px;">
+    <table style="margin-top:10px;">
       <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
       <tr>
         <th>년 월 일</th>
@@ -220,7 +207,7 @@ function render(data){
       <tr class="blank-row"><td></td><td></td><td></td></tr>
     </table>
 
-    <table style="margin-top:12px;">
+    <table style="margin-top:10px;">
       <tr><th class="section-title">자격증</th></tr>
       <tr>
         <td contenteditable="true">${esc(licenses.join(" / "))}</td>
