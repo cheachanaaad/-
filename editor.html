@@ -4,12 +4,24 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>이력서 편집기</title>
+
   <style>
-    @page { size: A4; margin: 10mm; }
+    /* ===== Print: A4에 딱 맞게 ===== */
+    @page { size: A4; margin: 0; } /* 프린터 여백은 브라우저/프린터 설정이 최종 영향 */
+
     @media print {
-      body { background:#fff; }
-      .toolbar { display:none !important; }
-      .sheet { box-shadow:none !important; margin:0 !important; }
+      html, body { background:#fff !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      .toolbar { display: none !important; }
+      .sheet { box-shadow:none !important; margin:0 !important; padding:0 !important; }
+      .frame { border: 2px solid #111 !important; }
+
+      /* 인쇄 시 화면용 여백 제거 */
+      .sheet-wrap { margin: 0 !important; padding: 0 !important; }
+
+      /* 페이지 나눔 안정화 */
+      table, tr, td, th { page-break-inside: avoid; break-inside: avoid; }
     }
 
     :root{
@@ -49,18 +61,26 @@
     .btn.primary{ background:#111; color:#fff; border-color:#111; }
     .hint{ color:#666; font-size:12px; margin-left:auto; }
 
+    .sheet-wrap{
+      padding: 14px 0;
+    }
+
+    /* A4 캔버스 */
     .sheet{
       width:210mm;
       min-height:297mm;
       background:#fff;
-      margin:14px auto;
+      margin:0 auto;
       padding:10mm;
       box-sizing:border-box;
       box-shadow:0 8px 28px rgba(0,0,0,.12);
     }
+
     .frame{
       border: var(--thick) solid var(--border);
       padding: 6mm;
+      box-sizing: border-box;
+      min-height: calc(297mm - 20mm); /* 대략적(안전) */
     }
 
     .meta{
@@ -119,9 +139,9 @@
     /* ✅ 전체 셀 가운데 정렬 */
     td, th { text-align: center; }
 
-    .label{ width:18%; text-align:center; font-weight:700; }
+    .label{ width:18%; font-weight:700; }
     .value{ width:32%; }
-    .label-sm{ width:16%; text-align:center; font-weight:700; }
+    .label-sm{ width:16%; font-weight:700; }
     .value-sm{ width:34%; }
 
     .section-title{
@@ -145,10 +165,9 @@
       border-radius: 4px;
     }
 
-    .center{ text-align:center; }
     .blank-row td{ height:12mm; }
 
-    /* ✅ 줄바꿈 방지(밑으로 내려가지 않게) */
+    /* ✅ 줄바꿈 방지 */
     .nowrap{
       white-space: nowrap;
       word-break: keep-all;
@@ -156,7 +175,7 @@
       text-overflow: ellipsis;
     }
 
-    /* ✅ 주민번호 칸 높이 고정 + 수직 가운데 */
+    /* ✅ 주민번호 칸: 높이 고정 + 수직 가운데 + 줄바꿈 방지 */
     .rrn-cell{
       height: 28px;
       line-height: 28px;
@@ -165,22 +184,25 @@
       padding-bottom: 0;
     }
 
-    /* (선택) 주소/이메일은 왼쪽 정렬이 더 자연스러우면 아래 주석 해제 */
+    /* (선택) 주소/이메일은 왼쪽 정렬이 더 자연스러우면 주석 해제 */
     /*
     td[data-field="address"], td[data-field="email"] { text-align:left; }
     */
   </style>
 </head>
+
 <body>
   <div class="toolbar">
-    <button class="btn primary" onclick="window.print()">인쇄(A4)</button>
+    <button class="btn primary" onclick="printA4()">인쇄(A4)</button>
     <button class="btn" onclick="copyLink()">현재 링크 복사</button>
     <button class="btn" onclick="exportJson()">수정값 JSON 내보내기</button>
     <span class="hint">문서에서 직접 클릭해 수정 → 인쇄</span>
   </div>
 
-  <div class="sheet">
-    <div class="frame" id="root"></div>
+  <div class="sheet-wrap">
+    <div class="sheet" id="printArea">
+      <div class="frame" id="root"></div>
+    </div>
   </div>
 
 <script>
@@ -210,7 +232,7 @@
 
     const rowsHtml = rows.map((r, idx) => `
       <tr data-row="${idx}">
-        <td class="center" contenteditable="true" data-k="date">${esc(r.date||"")}</td>
+        <td class="nowrap" contenteditable="true" data-k="date">${esc(r.date||"")}</td>
         <td contenteditable="true" data-k="content">${esc(r.content||"")}</td>
         <td contenteditable="true" data-k="issuer">${esc(r.issuer||"")}</td>
       </tr>
@@ -231,14 +253,13 @@
               <td class="label">성명</td>
               <td class="value" contenteditable="true" data-field="name">${esc(data.name||"")}</td>
               <td class="label-sm">주민등록번호</td>
-              <!-- ✅ 주민번호: 높이 고정 + 줄바꿈 방지 -->
               <td class="value-sm rrn-cell nowrap" contenteditable="true" data-field="rrn">${esc(data.rrn||"")}</td>
             </tr>
             <tr>
               <td class="label">생년월일</td>
-              <td class="value" contenteditable="true" data-field="birth">${esc(data.birth||"")}</td>
+              <td class="value nowrap" contenteditable="true" data-field="birth">${esc(data.birth||"")}</td>
               <td class="label-sm">성별(남·여)</td>
-              <td class="value-sm" contenteditable="true" data-field="gender">${esc(data.gender||"")}</td>
+              <td class="value-sm nowrap" contenteditable="true" data-field="gender">${esc(data.gender||"")}</td>
             </tr>
             <tr>
               <td class="label">주소</td>
@@ -261,13 +282,15 @@
           <th>학력 및 경력사항</th>
           <th>발령청</th>
         </tr>
+
         ${rowsHtml || `
           <tr data-row="0">
-            <td class="center" contenteditable="true" data-k="date"></td>
+            <td class="nowrap" contenteditable="true" data-k="date"></td>
             <td contenteditable="true" data-k="content"></td>
             <td contenteditable="true" data-k="issuer"></td>
           </tr>
         `}
+
         <tr class="blank-row"><td></td><td></td><td></td></tr>
         <tr class="blank-row"><td></td><td></td><td></td></tr>
         <tr class="blank-row"><td></td><td></td><td></td></tr>
@@ -329,6 +352,12 @@
     a.download = "resume.json";
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  // ✅ 인쇄 버튼: 인쇄 직전 레이아웃 안정화 후 print
+  function printA4(){
+    // 일부 브라우저에서 폰트 로딩/레이아웃 반영을 위해 한 틱 대기
+    requestAnimationFrame(() => window.print());
   }
 
   // 초기 로드: hash 데이터로 렌더
