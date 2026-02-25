@@ -6,22 +6,36 @@
   <title>이력서 편집기</title>
 
   <style>
-    /* ===== Print: A4에 딱 맞게 ===== */
-    @page { size: A4; margin: 0; } /* 프린터 여백은 브라우저/프린터 설정이 최종 영향 */
+    /* ===== Print ===== */
+    @page { size: A4; margin: 0; }
 
     @media print {
       html, body { background:#fff !important; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-      .toolbar { display: none !important; }
-      .sheet { box-shadow:none !important; margin:0 !important; padding:0 !important; }
-      .frame { border: 2px solid #111 !important; }
+      .toolbar { display:none !important; }
+      .sheet-wrap { padding:0 !important; }
 
-      /* 인쇄 시 화면용 여백 제거 */
-      .sheet-wrap { margin: 0 !important; padding: 0 !important; }
+      /* ✅ 인쇄에서는 A4 한 장을 정확히 사용 */
+      .sheet{
+        width:210mm !important;
+        height:297mm !important;   /* 한 페이지 고정 */
+        margin:0 !important;
+        padding:10mm !important;
+        box-shadow:none !important;
+        box-sizing:border-box !important;
+        overflow:hidden !important; /* ✅ 바닥 경계선/넘침 방지 */
+      }
 
-      /* 페이지 나눔 안정화 */
-      table, tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+      .frame{
+        border:2px solid #111 !important;
+        padding:6mm !important;
+        height: calc(297mm - 20mm) !important; /* sheet padding(10mm*2) 제외 */
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+      }
+
+      table, tr, td, th { break-inside: avoid; page-break-inside: avoid; }
     }
 
     :root{
@@ -65,10 +79,9 @@
       padding: 14px 0;
     }
 
-    /* A4 캔버스 */
+    /* ✅ 화면에서는 "내용만큼" 높이 (min-height 제거) */
     .sheet{
       width:210mm;
-      min-height:297mm;
       background:#fff;
       margin:0 auto;
       padding:10mm;
@@ -76,11 +89,11 @@
       box-shadow:0 8px 28px rgba(0,0,0,.12);
     }
 
+    /* ✅ frame 높이 강제(min-height) 제거 */
     .frame{
       border: var(--thick) solid var(--border);
       padding: 6mm;
       box-sizing: border-box;
-      min-height: calc(297mm - 20mm); /* 대략적(안전) */
     }
 
     .meta{
@@ -155,10 +168,7 @@
     .career th:nth-child(2){ width:64%; }
     .career th:nth-child(3){ width:20%; }
 
-    /* 문서 위 직접 수정 */
-    [contenteditable="true"]{
-      outline: none;
-    }
+    [contenteditable="true"]{ outline:none; }
     [contenteditable="true"]:focus{
       outline: 2px solid rgba(0,0,0,.15);
       outline-offset: 1px;
@@ -167,7 +177,6 @@
 
     .blank-row td{ height:12mm; }
 
-    /* ✅ 줄바꿈 방지 */
     .nowrap{
       white-space: nowrap;
       word-break: keep-all;
@@ -175,7 +184,6 @@
       text-overflow: ellipsis;
     }
 
-    /* ✅ 주민번호 칸: 높이 고정 + 수직 가운데 + 줄바꿈 방지 */
     .rrn-cell{
       height: 28px;
       line-height: 28px;
@@ -183,11 +191,6 @@
       padding-top: 0;
       padding-bottom: 0;
     }
-
-    /* (선택) 주소/이메일은 왼쪽 정렬이 더 자연스러우면 주석 해제 */
-    /*
-    td[data-field="address"], td[data-field="email"] { text-align:left; }
-    */
   </style>
 </head>
 
@@ -225,7 +228,6 @@
     }
   }
 
-  // 화면 렌더
   function render(data){
     const rows = Array.isArray(data.rows) ? data.rows : [];
     const licenses = Array.isArray(data.licenses) ? data.licenses : [];
@@ -238,13 +240,11 @@
       </tr>
     `).join("");
 
-    const root = document.getElementById("root");
-    root.innerHTML = `
+    document.getElementById("root").innerHTML = `
       <div class="meta">(인사서식제1호)</div>
 
       <div class="title-row">
         <div class="photo-box">사진</div>
-
         <div>
           <div class="title">이 력 서</div>
 
@@ -305,7 +305,6 @@
     `;
   }
 
-  // 화면에서 수정한 내용을 다시 JSON으로 수집
   function collect(){
     const root = document.getElementById("root");
     const data = {};
@@ -320,7 +319,6 @@
       }
     });
 
-    // rows 수집
     const rows = [];
     root.querySelectorAll("tr[data-row]").forEach(tr=>{
       const r = {
@@ -354,15 +352,11 @@
     URL.revokeObjectURL(a.href);
   }
 
-  // ✅ 인쇄 버튼: 인쇄 직전 레이아웃 안정화 후 print
   function printA4(){
-    // 일부 브라우저에서 폰트 로딩/레이아웃 반영을 위해 한 틱 대기
     requestAnimationFrame(() => window.print());
   }
 
-  // 초기 로드: hash 데이터로 렌더
-  const initial = parseHashData();
-  render(initial);
+  render(parseHashData());
 </script>
 </body>
 </html>
