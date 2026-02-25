@@ -115,6 +115,10 @@
       text-align:center;
       background:#fff;
     }
+
+    /* ✅ 전체 셀 가운데 정렬 */
+    td, th { text-align: center; }
+
     .label{ width:18%; text-align:center; font-weight:700; }
     .value{ width:32%; }
     .label-sm{ width:16%; text-align:center; font-weight:700; }
@@ -143,6 +147,28 @@
 
     .center{ text-align:center; }
     .blank-row td{ height:12mm; }
+
+    /* ✅ 줄바꿈 방지(밑으로 내려가지 않게) */
+    .nowrap{
+      white-space: nowrap;
+      word-break: keep-all;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ✅ 주민번호 칸 높이 고정 + 수직 가운데 */
+    .rrn-cell{
+      height: 28px;
+      line-height: 28px;
+      vertical-align: middle;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* (선택) 주소/이메일은 왼쪽 정렬이 더 자연스러우면 아래 주석 해제 */
+    /*
+    td[data-field="address"], td[data-field="email"] { text-align:left; }
+    */
   </style>
 </head>
 <body>
@@ -205,7 +231,8 @@
               <td class="label">성명</td>
               <td class="value" contenteditable="true" data-field="name">${esc(data.name||"")}</td>
               <td class="label-sm">주민등록번호</td>
-              <td class="value-sm" contenteditable="true" data-field="rrn">${esc(data.rrn||"")}</td>
+              <!-- ✅ 주민번호: 높이 고정 + 줄바꿈 방지 -->
+              <td class="value-sm rrn-cell nowrap" contenteditable="true" data-field="rrn">${esc(data.rrn||"")}</td>
             </tr>
             <tr>
               <td class="label">생년월일</td>
@@ -221,7 +248,7 @@
               <td class="label">E-mail</td>
               <td class="value" contenteditable="true" data-field="email">${esc(data.email||"")}</td>
               <td class="label-sm">전화 / H.P</td>
-              <td class="value-sm" contenteditable="true" data-field="phone">${esc(data.phone||"")}</td>
+              <td class="value-sm nowrap" contenteditable="true" data-field="phone">${esc(data.phone||"")}</td>
             </tr>
           </table>
         </div>
@@ -278,7 +305,6 @@
         content: (tr.querySelector('[data-k="content"]')?.textContent || "").trim(),
         issuer: (tr.querySelector('[data-k="issuer"]')?.textContent || "").trim(),
       };
-      // 완전 빈 행은 제외
       if (r.date || r.content || r.issuer) rows.push(r);
     });
     data.rows = rows;
