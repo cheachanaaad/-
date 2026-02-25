@@ -6,26 +6,17 @@
 <title>이력서 편집기</title>
 
 <style>
-@page { size: A4; margin: 0; }
+@page { size: A4; margin: 15mm; }
 
 @media print {
-  html, body { background:#fff !important; }
+  body { background:#fff !important; }
   .toolbar { display:none !important; }
-
-  .sheet{
-    width:210mm !important;
-    height:297mm !important;
-    margin:0 auto !important;
-    padding:10mm !important;
-    box-shadow:none !important;
-    overflow:hidden !important;
-  }
+  .sheet { box-shadow:none !important; margin:0 !important; }
 }
 
 :root{
-  --border:#111;
+  --border:#222;
   --thin:1px;
-  --thick:2px;
   --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif;
 }
 
@@ -69,10 +60,9 @@ body{
   box-sizing:border-box;
 }
 
+/* 🔥 frame border 완전 제거 */
 .frame{
-  border:2px solid #111;
-  padding:6mm;
-  box-sizing:border-box;
+  padding:0;
 }
 
 .title{
@@ -80,7 +70,7 @@ body{
   font-size:26px;
   letter-spacing:18px;
   font-weight:bold;
-  margin-bottom:10px;
+  margin-bottom:15px;
 }
 
 table{
@@ -91,7 +81,7 @@ table{
 }
 
 th, td{
-  border:1px solid #111;
+  border:1px solid var(--border);
   padding:6px;
   text-align:center;
   vertical-align:middle;
@@ -158,7 +148,7 @@ function render(data){
   const rows = Array.isArray(data.rows) ? data.rows : [];
   const licenses = Array.isArray(data.licenses) ? data.licenses : [];
 
-  const rowsHtml = rows.map((r) => `
+  const rowsHtml = rows.map(r => `
     <tr>
       <td class="nowrap" contenteditable="true">${esc(r.date||"")}</td>
       <td contenteditable="true">${esc(r.content||"")}</td>
@@ -194,7 +184,7 @@ function render(data){
       </tr>
     </table>
 
-    <table style="margin-top:10px;">
+    <table style="margin-top:12px;">
       <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
       <tr>
         <th>년 월 일</th>
@@ -207,7 +197,7 @@ function render(data){
       <tr class="blank-row"><td></td><td></td><td></td></tr>
     </table>
 
-    <table style="margin-top:10px;">
+    <table style="margin-top:12px;">
       <tr><th class="section-title">자격증</th></tr>
       <tr>
         <td contenteditable="true">${esc(licenses.join(" / "))}</td>
