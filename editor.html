@@ -1,80 +1,313 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>이력서 편집기</title>
-<style>
-  body{margin:0;font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;background:#f4f4f4}
-  .sheet{width:210mm;min-height:297mm;background:#fff;margin:20px auto;padding:20mm;box-shadow:0 8px 28px rgba(0,0,0,.12)}
-  .title{text-align:center;font-size:28px;letter-spacing:15px;font-weight:bold}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{border:1px solid #111;padding:6px;font-size:14px}
-  th{text-align:center}
-  [contenteditable]{outline:none}
-  .print-btn{position:fixed;top:10px;right:10px;padding:8px 14px;background:#111;color:#fff;border:none;border-radius:6px;cursor:pointer}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>이력서 편집기</title>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      body { background:#fff; }
+      .toolbar { display:none !important; }
+      .sheet { box-shadow:none !important; margin:0 !important; }
+    }
+
+    :root{
+      --border:#111;
+      --thin:1px;
+      --thick:2px;
+      --font:"Malgun Gothic","맑은 고딕",Arial,sans-serif;
+    }
+
+    body{
+      margin:0;
+      background:#f4f4f4;
+      font-family:var(--font);
+      color:#111;
+    }
+
+    .toolbar{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background:#fff;
+      border-bottom:1px solid #e6e6e6;
+      padding:10px 12px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .btn{
+      border:1px solid #d0d0d0;
+      background:#fff;
+      border-radius:10px;
+      padding:8px 12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn.primary{ background:#111; color:#fff; border-color:#111; }
+    .hint{ color:#666; font-size:12px; margin-left:auto; }
+
+    .sheet{
+      width:210mm;
+      min-height:297mm;
+      background:#fff;
+      margin:14px auto;
+      padding:10mm;
+      box-sizing:border-box;
+      box-shadow:0 8px 28px rgba(0,0,0,.12);
+    }
+    .frame{
+      border: var(--thick) solid var(--border);
+      padding: 6mm;
+    }
+
+    .meta{
+      text-align:right;
+      font-size:12px;
+      color:#333;
+      margin-bottom:2mm;
+    }
+
+    .title-row{
+      display:grid;
+      grid-template-columns:34mm 1fr;
+      gap:6mm;
+      align-items:start;
+      margin-bottom:4mm;
+    }
+
+    .photo-box{
+      border: var(--thin) solid var(--border);
+      width:34mm;
+      height:42mm;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color:#666;
+      user-select:none;
+    }
+
+    .title{
+      text-align:center;
+      font-size:26px;
+      letter-spacing:18px;
+      font-weight:700;
+      margin-top:4mm;
+      margin-bottom:2mm;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      font-size:13px;
+    }
+    th, td{
+      border: var(--thin) solid var(--border);
+      padding:6px 6px;
+      vertical-align:middle;
+    }
+    th{
+      font-weight:700;
+      text-align:center;
+      background:#fff;
+    }
+    .label{ width:18%; text-align:center; font-weight:700; }
+    .value{ width:32%; }
+    .label-sm{ width:16%; text-align:center; font-weight:700; }
+    .value-sm{ width:34%; }
+
+    .section-title{
+      text-align:center;
+      font-weight:700;
+      padding:8px 0;
+      background:#fff;
+    }
+
+    .career th:nth-child(1){ width:16%; }
+    .career th:nth-child(2){ width:64%; }
+    .career th:nth-child(3){ width:20%; }
+
+    /* 문서 위 직접 수정 */
+    [contenteditable="true"]{
+      outline: none;
+    }
+    [contenteditable="true"]:focus{
+      outline: 2px solid rgba(0,0,0,.15);
+      outline-offset: 1px;
+      border-radius: 4px;
+    }
+
+    .center{ text-align:center; }
+    .blank-row td{ height:12mm; }
+  </style>
 </head>
 <body>
+  <div class="toolbar">
+    <button class="btn primary" onclick="window.print()">인쇄(A4)</button>
+    <button class="btn" onclick="copyLink()">현재 링크 복사</button>
+    <button class="btn" onclick="exportJson()">수정값 JSON 내보내기</button>
+    <span class="hint">문서에서 직접 클릭해 수정 → 인쇄</span>
+  </div>
 
-<button class="print-btn" onclick="window.print()">인쇄</button>
-
-<div class="sheet" id="resume"></div>
+  <div class="sheet">
+    <div class="frame" id="root"></div>
+  </div>
 
 <script>
-function esc(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
-}
-
-function parseData(){
-  const m = location.hash.match(/#data=([^&]+)/);
-  if(!m) return {};
-  try{
-    return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
-  }catch(e){
-    return {};
+  function esc(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
   }
-}
 
-function render(){
-  const data = parseData();
+  function parseHashData(){
+    const m = location.hash.match(/#data=([^&]+)/);
+    if(!m) return {};
+    try{
+      return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    }catch(e){
+      return {};
+    }
+  }
 
-  const rows = (data.rows || []).map(r =>
-    `<tr>
-      <td contenteditable="true">${esc(r.date||"")}</td>
-      <td contenteditable="true">${esc(r.content||"")}</td>
-      <td contenteditable="true">${esc(r.issuer||"")}</td>
-    </tr>`
-  ).join("");
+  // 화면 렌더
+  function render(data){
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const licenses = Array.isArray(data.licenses) ? data.licenses : [];
 
-  document.getElementById("resume").innerHTML = `
-    <div class="title">이 력 서</div>
+    const rowsHtml = rows.map((r, idx) => `
+      <tr data-row="${idx}">
+        <td class="center" contenteditable="true" data-k="date">${esc(r.date||"")}</td>
+        <td contenteditable="true" data-k="content">${esc(r.content||"")}</td>
+        <td contenteditable="true" data-k="issuer">${esc(r.issuer||"")}</td>
+      </tr>
+    `).join("");
 
-    <table>
-      <tr><th>성명</th><td contenteditable="true">${esc(data.name||"")}</td></tr>
-      <tr><th>주민등록번호</th><td contenteditable="true">${esc(data.rrn||"")}</td></tr>
-      <tr><th>생년월일</th><td contenteditable="true">${esc(data.birth||"")}</td></tr>
-      <tr><th>성별</th><td contenteditable="true">${esc(data.gender||"")}</td></tr>
-      <tr><th>주소</th><td contenteditable="true">${esc(data.address||"")}</td></tr>
-      <tr><th>이메일</th><td contenteditable="true">${esc(data.email||"")}</td></tr>
-      <tr><th>전화</th><td contenteditable="true">${esc(data.phone||"")}</td></tr>
-    </table>
+    const root = document.getElementById("root");
+    root.innerHTML = `
+      <div class="meta">(인사서식제1호)</div>
 
-    <h3>학력 및 경력사항</h3>
-    <table>
-      <tr><th>년월일</th><th>내용</th><th>발령청</th></tr>
-      ${rows}
-    </table>
+      <div class="title-row">
+        <div class="photo-box">사진</div>
 
-    <h3>자격증</h3>
-    <div contenteditable="true">${esc((data.licenses||[]).join(" / "))}</div>
-  `;
-}
+        <div>
+          <div class="title">이 력 서</div>
 
-render();
+          <table>
+            <tr>
+              <td class="label">성명</td>
+              <td class="value" contenteditable="true" data-field="name">${esc(data.name||"")}</td>
+              <td class="label-sm">주민등록번호</td>
+              <td class="value-sm" contenteditable="true" data-field="rrn">${esc(data.rrn||"")}</td>
+            </tr>
+            <tr>
+              <td class="label">생년월일</td>
+              <td class="value" contenteditable="true" data-field="birth">${esc(data.birth||"")}</td>
+              <td class="label-sm">성별(남·여)</td>
+              <td class="value-sm" contenteditable="true" data-field="gender">${esc(data.gender||"")}</td>
+            </tr>
+            <tr>
+              <td class="label">주소</td>
+              <td colspan="3" contenteditable="true" data-field="address">${esc(data.address||"")}</td>
+            </tr>
+            <tr>
+              <td class="label">E-mail</td>
+              <td class="value" contenteditable="true" data-field="email">${esc(data.email||"")}</td>
+              <td class="label-sm">전화 / H.P</td>
+              <td class="value-sm" contenteditable="true" data-field="phone">${esc(data.phone||"")}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <table class="career" style="margin-top:3mm;">
+        <tr><th colspan="3" class="section-title">학력 및 경력사항</th></tr>
+        <tr>
+          <th>년 월 일</th>
+          <th>학력 및 경력사항</th>
+          <th>발령청</th>
+        </tr>
+        ${rowsHtml || `
+          <tr data-row="0">
+            <td class="center" contenteditable="true" data-k="date"></td>
+            <td contenteditable="true" data-k="content"></td>
+            <td contenteditable="true" data-k="issuer"></td>
+          </tr>
+        `}
+        <tr class="blank-row"><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td></td><td></td><td></td></tr>
+      </table>
+
+      <table style="margin-top:3mm;">
+        <tr><th class="section-title">자격증</th></tr>
+        <tr>
+          <td contenteditable="true" data-field="licenses">${esc(licenses.join(" / "))}</td>
+        </tr>
+      </table>
+    `;
+  }
+
+  // 화면에서 수정한 내용을 다시 JSON으로 수집
+  function collect(){
+    const root = document.getElementById("root");
+    const data = {};
+
+    root.querySelectorAll("[data-field]").forEach(el=>{
+      const k = el.getAttribute("data-field");
+      const v = (el.textContent || "").trim();
+      if (k === "licenses") {
+        data.licenses = v ? v.split("/").map(s=>s.trim()).filter(Boolean) : [];
+      } else {
+        data[k] = v;
+      }
+    });
+
+    // rows 수집
+    const rows = [];
+    root.querySelectorAll("tr[data-row]").forEach(tr=>{
+      const r = {
+        date: (tr.querySelector('[data-k="date"]')?.textContent || "").trim(),
+        content: (tr.querySelector('[data-k="content"]')?.textContent || "").trim(),
+        issuer: (tr.querySelector('[data-k="issuer"]')?.textContent || "").trim(),
+      };
+      // 완전 빈 행은 제외
+      if (r.date || r.content || r.issuer) rows.push(r);
+    });
+    data.rows = rows;
+
+    return data;
+  }
+
+  async function copyLink(){
+    try{
+      await navigator.clipboard.writeText(location.href);
+      alert("링크를 복사했습니다.");
+    }catch{
+      prompt("복사 실패. 아래 링크를 직접 복사하세요:", location.href);
+    }
+  }
+
+  function exportJson(){
+    const data = collect();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "resume.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // 초기 로드: hash 데이터로 렌더
+  const initial = parseHashData();
+  render(initial);
 </script>
 </body>
 </html>
